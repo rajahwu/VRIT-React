@@ -1,0 +1,41 @@
+{
+  "base": {
+    "background": "zinc-950",
+    "text": "zinc-100",
+    "border": "zinc-800",
+    "muted": "zinc-600"
+  },
+  "phases": {
+    "plan": {
+      "color": "amber-500",
+      "textColor": "text-amber-500",
+      "borderColor": "border-amber-500"
+    },
+    "sprint": {
+      "color": "emerald-500",
+      "textColor": "text-emerald-500",
+      "borderColor": "border-emerald-500"
+    },
+    "rest": {
+      "color": "sky-500",
+      "textColor": "text-sky-500",
+      "borderColor": "border-sky-500"
+    },
+    "reflect": {
+      "color": "violet-500",
+      "textColor": "text-violet-500",
+      "borderColor": "border-violet-500"
+    },
+    "recover": {
+      "color": "rose-500",
+      "textColor": "text-rose-500",
+      "borderColor": "border-rose-500"
+    }
+  },
+  "semantic": {
+    "success": "emerald-500",
+    "warning": "amber-500",
+    "info": "sky-500",
+    "error": "rose-500"
+  }
+}
