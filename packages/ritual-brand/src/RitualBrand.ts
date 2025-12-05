@@ -78,7 +78,28 @@ export class RitualBrand {
       lines.push(`  --radius-${key}: ${value};`);
     });
 
-    // --- 5. TYPOGRAPHY ---
+    // --- 5. CONTAINER & GRID ---
+    lines.push('\n  /* --- CONTAINER & GRID --- */');
+    if (spacing.container) {
+      const container = spacing.container as AnyJson;
+      if (container.maxWidth) {
+        Object.entries(container.maxWidth).forEach(([key, value]) => {
+          lines.push(`  --breakpoint-${key}: ${value};`);
+        });
+      }
+      if (container.padding) {
+        Object.entries(container.padding).forEach(([key, value]) => {
+          lines.push(`  --spacing-container-padding-${key}: ${value};`);
+        });
+      }
+    }
+    if (spacing.grid) {
+        const grid = spacing.grid as AnyJson;
+        if (grid.columns) lines.push(`  --grid-columns: ${grid.columns};`);
+        if (grid.gutter) lines.push(`  --grid-gutter: ${grid.gutter};`);
+    }
+
+    // --- 6. TYPOGRAPHY ---
     lines.push('\n  /* --- TYPOGRAPHY --- */');
     Object.entries(typography.fonts as AnyJson).forEach(([key, config]) => {
       lines.push(`  --font-${key}: ${config.family};`);

@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Volume2, VolumeX, SkipForward, SkipBack } from 'lucide-react';
 import { PHASES, Phase } from './phases';
+import { useRitualSound } from './hooks/useRitualSound';
+import { useNet, TheNet } from './components/TheNet';
 
 function formatTime(seconds: number) {
   const mins = Math.floor(seconds / 60);
@@ -40,10 +43,29 @@ export default function RitualCycleTracker() {
   });
   const [completedSessions, setCompletedSessions] = useState<CompletedSession[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showNet, setShowNet] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const currentPhase = PHASES[currentPhaseIndex];
 
+  // --- AUDIO ENGINE ---
+  const {
+    isMuted,
+    setIsMuted,
+    isPlaying,
+    currentTrack,
+    availableTracks,
+    nextTrack,
+    prevTrack,
+  } = useRitualSound({
+    phaseId: currentPhase.id as any,
+    isRunning,
+  });
+
+  // --- THE NET ---
+  const { captures, addCapture, clearCaptures } = useNet();
+
+  // Timer logic
   useEffect(() => {
     let interval: NodeJS.Timeout | undefined;
     if (isRunning && timeRemaining > 0) {
@@ -51,12 +73,12 @@ export default function RitualCycleTracker() {
         setTimeRemaining((t: number) => t - 1);
       }, 1000);
     } else if (timeRemaining === 0 && isRunning) {
-      // Auto-advance or notify
       setIsRunning(false);
     }
     return () => clearInterval(interval);
   }, [isRunning, timeRemaining]);
 
+  // Focus textarea on phase change
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.focus();
@@ -77,7 +99,6 @@ export default function RitualCycleTracker() {
       setTimeRemaining(PHASES[nextIndex].duration);
       setIsRunning(false);
     } else {
-      // Cycle complete
       setCompletedSessions(prev => [...prev, { ...sessionData, completedAt: new Date().toISOString() }]);
       setSessionData({
         date: new Date().toLocaleDateString(),
@@ -102,38 +123,58 @@ export default function RitualCycleTracker() {
     }
   };
 
-  const toggleTimer = () => {
-    setIsRunning(!isRunning);
-  };
-
-  const resetTimer = () => {
-    setTimeRemaining(currentPhase.duration);
-    setIsRunning(false);
-  };
-
-  const skipTimer = () => {
-    setTimeRemaining(0);
-    setIsRunning(false);
-  };
+  const toggleTimer = () => setIsRunning(!isRunning);
+  const resetTimer = () => { setTimeRemaining(currentPhase.duration); setIsRunning(false); };
+  const skipTimer = () => { setTimeRemaining(0); setIsRunning(false); };
 
   const progress = ((currentPhase.duration - timeRemaining) / currentPhase.duration) * 100;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-8">
-      <div className="max-w-2xl mx-auto">
-        
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-8 flex flex-col md:flex-row gap-8">
+      
+      {/* LEFT COLUMN: THE ENGINE */}
+      <div className="flex-1 max-w-2xl mx-auto w-full">
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-light tracking-tight">Ritual Cycle</h1>
             <p className="text-zinc-500 text-sm mt-1">In, through, out, done.</p>
           </div>
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="text-zinc-500 hover:text-zinc-300 text-sm px-3 py-1 border border-zinc-800 rounded-lg transition-colors"
-          >
-            {showHistory ? 'Current' : `History (${completedSessions.length})`}
-          </button>
+          
+          <div className="flex gap-2">
+            {/* Audio Toggle */}
+            <button
+              onClick={() => setIsMuted(!isMuted)}
+              className={`text-xs px-3 py-1 border rounded-lg transition-colors flex items-center gap-2 ${
+                isMuted
+                  ? 'border-zinc-800 text-zinc-500'
+                  : 'border-emerald-500/30 text-emerald-500 bg-emerald-500/5'
+              }`}
+            >
+              {isMuted ? (
+                <><VolumeX className="w-3 h-3" /> Silent</>
+              ) : (
+                <><Volume2 className="w-3 h-3" /> Sound</>
+              )}
+            </button>
+
+            {/* Mobile Net Toggle */}
+            <button
+              onClick={() => setShowNet(!showNet)}
+              className="md:hidden text-zinc-500 hover:text-zinc-300 text-sm px-3 py-1 border border-zinc-800 rounded-lg transition-colors"
+            >
+              {showNet ? 'Hide Net' : `Net (${captures.length})`}
+            </button>
+
+            {/* History Toggle */}
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="text-zinc-500 hover:text-zinc-300 text-sm px-3 py-1 border border-zinc-800 rounded-lg transition-colors"
+            >
+              {showHistory ? 'Current' : `History (${completedSessions.length})`}
+            </button>
+          </div>
         </div>
 
         {showHistory ? (
@@ -168,10 +209,10 @@ export default function RitualCycleTracker() {
                 <div
                   key={phase.id}
                   className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                    idx < currentPhaseIndex 
-                      ? phase.color 
-                      : idx === currentPhaseIndex 
-                        ? `${phase.color} opacity-100` 
+                    idx < currentPhaseIndex
+                      ? phase.color
+                      : idx === currentPhaseIndex
+                        ? `${phase.color} opacity-100`
                         : 'bg-zinc-800'
                   }`}
                 />
@@ -180,7 +221,7 @@ export default function RitualCycleTracker() {
 
             {/* Current Phase Card */}
             <div className={`bg-zinc-900 border ${currentPhase.borderColor} border-opacity-30 rounded-2xl p-6 mb-6`}>
-              
+
               {/* Phase Header */}
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -199,6 +240,35 @@ export default function RitualCycleTracker() {
                 {currentPhase.gesture}
               </p>
 
+              {/* Now Playing (Audio) */}
+              {currentTrack && !isMuted && (
+                <div className="mb-4 flex items-center justify-between bg-zinc-950/50 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${isPlaying ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-600'}`} />
+                    <div>
+                      <div className="text-xs text-zinc-400">Now Playing</div>
+                      <div className="text-sm text-zinc-200">{currentTrack.title}</div>
+                    </div>
+                  </div>
+                  {availableTracks.length > 1 && (
+                    <div className="flex gap-1">
+                      <button
+                        onClick={prevTrack}
+                        className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
+                      >
+                        <SkipBack className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={nextTrack}
+                        className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
+                      >
+                        <SkipForward className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Timer */}
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
@@ -209,8 +279,8 @@ export default function RitualCycleTracker() {
                     <button
                       onClick={toggleTimer}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isRunning 
-                          ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700' 
+                        isRunning
+                          ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
                           : `${currentPhase.color} text-white hover:opacity-90`
                       }`}
                     >
@@ -230,10 +300,10 @@ export default function RitualCycleTracker() {
                     </button>
                   </div>
                 </div>
-                
+
                 {/* Progress Bar */}
                 <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className={`h-full ${currentPhase.color} transition-all duration-1000 ease-linear`}
                     style={{ width: `${progress}%` }}
                   />
@@ -265,7 +335,7 @@ export default function RitualCycleTracker() {
               >
                 ← Previous
               </button>
-              
+
               <button
                 onClick={nextPhase}
                 className={`px-6 py-3 rounded-xl text-sm font-medium ${currentPhase.color} text-white hover:opacity-90 transition-opacity`}
@@ -288,6 +358,23 @@ export default function RitualCycleTracker() {
             </div>
           </>
         )}
+      </div>
+
+      {/* RIGHT COLUMN: THE NET */}
+      <div className={`
+        fixed inset-y-0 right-0 z-50 w-80 bg-zinc-950 p-6 shadow-2xl border-l border-zinc-900
+        md:static md:shadow-none md:z-auto md:border-none
+        transition-transform duration-300 ease-in-out
+        ${showNet ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
+      `}>
+        <TheNet
+          captures={captures}
+          onCapture={addCapture}
+          onClear={clearCaptures}
+          currentPhase={currentPhase.name}
+          isVisible={true}
+          onClose={() => setShowNet(false)}
+        />
       </div>
     </div>
   );

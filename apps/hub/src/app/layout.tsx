@@ -1,9 +1,11 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata } from 'next';
+import { Sidebar } from '../components/Sidebar';
+import { Providers } from '../components/Providers';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: "GTTM Hub",
-  description: "Ritual Cycle Tracker",
+  title: 'GTTM Hub',
+  description: 'Ritual Container & Engineering Environment',
 };
 
 export default function RootLayout({
@@ -13,8 +15,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased bg-zinc-950 text-zinc-50 min-h-screen">
-        {children}
+      <body className="bg-zinc-950 text-zinc-100 antialiased font-sans min-h-screen flex">
+        <Providers>
+          {/* The Fixed Control Panel */}
+          <Sidebar />
+
+          {/* The Main Stage (Shifted right by w-64) */}
+          <main className="flex-1 ml-64 min-h-screen">
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );

@@ -3,13 +3,18 @@
     "target": "ES6",
     "module": "CommonJS",
     "outDir": "dist",
+    "rootDir": "src",
     "strict": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "jsx": "react-jsx",
     "moduleResolution": "node",
     "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "types": ["node", "react"]
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
