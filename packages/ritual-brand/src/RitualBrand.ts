@@ -1,41 +1,92 @@
-// packages/ritual-brand/src/RitualBrand.ts
 import colors from '../../../design-source/TOKENS_SOURCE/colors.json';
 import phases from '../../../design-source/TOKENS_SOURCE/phases.json';
 import spacing from '../../../design-source/TOKENS_SOURCE/spacing.json';
 import typography from '../../../design-source/TOKENS_SOURCE/typography.json';
 
+type AnyJson = Record<string, any>;
+
+const COLORS = colors as AnyJson;
+const PHASES = phases as AnyJson;
+const SPACING = spacing as AnyJson;
+const TYPOGRAPHY = typography as AnyJson;
+
+export interface Phase {
+  id: string;         
+  name: string;       
+  description?: string;
+  duration?: number;  
+  color?: string;     
+}
+
+
 export class RitualBrand {
+  /**
+   * Returns the raw token objects for use in TS/JS logic.
+   */
   static getTokens() {
     return { colors, phases, spacing, typography };
   }
 
+  /**
+   * Compiles the Design Source into a Tailwind 4 CSS Theme.
+   */
   static toTailwindCSS() {
     const lines = ['@theme {'];
 
-    // 1. Palette Colors
-    // e.g. --color-zinc-950: #09090b;
-    Object.entries(colors.palette).forEach(([hue, shades]) => {
+    // --- 1. PALETTE (The Raw Paint) ---
+    // Maps colors.palette.zinc.950 -> --color-zinc-950: #09090b;
+    lines.push('\n  /* --- PALETTE --- */');
+    Object.entries(colors.palette as AnyJson).forEach(([hue, shades]) => {
       Object.entries(shades).forEach(([shade, value]) => {
         lines.push(`  --color-${hue}-${shade}: ${value};`);
       });
     });
 
-    // 2. Semantic Colors (mapping to palette)
-    // e.g. --color-base-background: var(--color-zinc-950);
-    Object.entries(colors.base).forEach(([key, value]) => {
-       lines.push(`  --color-base-${key}: var(--color-${value});`);
+    // --- 2. BASE SEMANTICS (The Context) ---
+    // Maps colors.base.background ("zinc-950") -> --color-base-background: var(--color-zinc-950);
+    lines.push('\n  /* --- BASE SEMANTICS --- */');
+    Object.entries(colors.base as AnyJson).forEach(([key, value]) => {
+      // Check if value is a color reference (e.g. "zinc-950") or raw hex
+      if (typeof value === 'string' && value.includes('-')) {
+        const [hue, shade] = value.split('-');
+        lines.push(`  --color-base-${key}: var(--color-${hue}-${shade});`);
+      } else {
+        lines.push(`  --color-base-${key}: ${value};`);
+      }
     });
 
-    // 3. Spacing
-    // e.g. --spacing-md: 16px;
-    Object.entries(spacing.spacing).forEach(([key, value]) => {
+    // --- 3. PHASE SEMANTICS ---
+    // Maps colors.phases.plan.color ("amber-500") -> --color-phase-plan: var(--color-amber-500);
+    lines.push('\n  /* --- PHASE SEMANTICS --- */');
+    Object.entries(colors.phases as AnyJson).forEach(([key, config]) => {
+       // FIX: config is an object { color: "amber-500", ... }, not a string.
+       // We assume the 'color' property holds the reference string.
+       const colorRef = config.color; 
+       
+       if (colorRef && typeof colorRef === 'string' && colorRef.includes('-')) {
+         const [hue, shade] = colorRef.split('-');
+         lines.push(`  --color-phase-${key}: var(--color-${hue}-${shade});`);
+       }
+    });
+
+    // --- 4. SPACING & RADIUS ---
+    lines.push('\n  /* --- SPACING & RADIUS --- */');
+    Object.entries(spacing.spacing as AnyJson).forEach(([key, value]) => {
       lines.push(`  --spacing-${key}: ${value};`);
     });
+    Object.entries(spacing.radius as AnyJson).forEach(([key, value]) => {
+      lines.push(`  --radius-${key}: ${value};`);
+    });
 
-    // 4. Typography (Fonts)
-    // e.g. --font-mono: "JetBrains Mono", monospace;
-    Object.entries(typography.fonts).forEach(([key, config]) => {
+    // --- 5. TYPOGRAPHY ---
+    lines.push('\n  /* --- TYPOGRAPHY --- */');
+    Object.entries(typography.fonts as AnyJson).forEach(([key, config]) => {
       lines.push(`  --font-${key}: ${config.family};`);
+    });
+    
+    // Special Fonts (Timer, Prompt)
+    Object.entries(typography.special as AnyJson).forEach(([key, config]) => {
+      lines.push(`  --font-special-${key}: ${config.font};`);
     });
 
     lines.push('}');

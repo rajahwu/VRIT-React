@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PHASES } from '@gttm/ritual-brand';
+import { PHASES, Phase } from './phases';
 
 function formatTime(seconds: number) {
   const mins = Math.floor(seconds / 60);
@@ -48,7 +48,7 @@ export default function RitualCycleTracker() {
     let interval: NodeJS.Timeout | undefined;
     if (isRunning && timeRemaining > 0) {
       interval = setInterval(() => {
-        setTimeRemaining(t => t - 1);
+        setTimeRemaining((t: number) => t - 1);
       }, 1000);
     } else if (timeRemaining === 0 && isRunning) {
       // Auto-advance or notify
@@ -164,7 +164,7 @@ export default function RitualCycleTracker() {
           <>
             {/* Phase Indicator */}
             <div className="flex gap-1 mb-8">
-              {PHASES.map((phase, idx) => (
+              {PHASES.map((phase: Phase, idx: number) => (
                 <div
                   key={phase.id}
                   className={`h-1 flex-1 rounded-full transition-all duration-300 ${

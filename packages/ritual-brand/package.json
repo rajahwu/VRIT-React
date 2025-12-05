@@ -1,11 +1,27 @@
 {
   "name": "@gttm/ritual-brand",
   "version": "0.0.1",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+
   "scripts": {
-    "build": "tsc"
+    "build": "pnpm build:clean && tsc && pnpm build:theme",
+    "build:clean": "rm -rf dist && mkdir dist",
+    "build:theme": "bun run scripts/build-theme.ts"
   },
+
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./ritual.css": "./dist/ritual.css"
+  },
+
+  "files": [
+    "dist"
+  ],
+
   "devDependencies": {
     "@types/node": "^20.19.25",
     "typescript": "^5.0.0"

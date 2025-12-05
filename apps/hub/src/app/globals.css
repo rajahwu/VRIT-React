@@ -1,11 +1,6 @@
 @import "tailwindcss";
-/* @source "../../../../packages/ritual-ui/src*.tsx"; */
-@import "./theme.css";
-
-/* 
-  Tailwind 4 automatically picks up --color-*, --font-*, etc. 
-  from the @theme block in theme.css 
-*/
+@import "@gttm/ritual-brand/ritual.css";
+@import "@gttm/ritual-ui/styles.css";
 
 :root {
   /* Semantic mappings if not in @theme yet, or overrides */
