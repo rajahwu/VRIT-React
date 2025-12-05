@@ -1,0 +1,9 @@
+{
+  "name": "@gttm/ritual-ui",
+  "version": "0.0.1",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@gttm/ritual-brand": "workspace:*",
+    "react": "^18.0.0"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "ritual-react-mono",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r run build",
+    "dev": "pnpm -r run dev"
+  }
+}
