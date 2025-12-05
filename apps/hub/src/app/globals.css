@@ -1,13 +1,18 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "./theme.css";
+
+/* 
+  Tailwind 4 automatically picks up --color-*, --font-*, etc. 
+  from the @theme block in theme.css 
+*/
 
 :root {
-  --background: 9 9 11; /* Zinc 950 */
-  --foreground: 250 250 250; /* Zinc 50 */
+  /* Semantic mappings if not in @theme yet, or overrides */
+  --background: var(--color-zinc-950); 
+  --foreground: var(--color-zinc-50);
 }
 
 body {
-  background-color: rgb(var(--background));
-  color: rgb(var(--foreground));
+  background-color: var(--background);
+  color: var(--foreground);
 }
