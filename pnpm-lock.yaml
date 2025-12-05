@@ -27,8 +27,8 @@ importers:
         version: 18.3.1(react@18.3.1)
     devDependencies:
       '@tailwindcss/postcss':
-        specifier: ^4.0.0
-        version: 4.0.0
+        specifier: ^4.1.17
+        version: 4.1.17
       '@types/node':
         specifier: ^20
         version: 20.19.25
@@ -77,6 +77,13 @@ importers:
       react:
         specifier: ^18.0.0
         version: 18.3.1
+    devDependencies:
+      '@types/react':
+        specifier: ^18
+        version: 18.3.27
+      '@types/react-dom':
+        specifier: ^18
+        version: 18.3.7(@types/react@18.3.27)
 
 packages:
 
@@ -485,8 +492,8 @@ packages:
     resolution: {integrity: sha512-F0F7d01fmkQhsTjXezGBLdrl1KresJTcI3DB8EkScCldyKp3Msz4hub4uyYaVnk88BAS1g5DQjjF6F5qczheLA==}
     engines: {node: '>= 10'}
 
-  '@tailwindcss/postcss@4.0.0':
-    resolution: {integrity: sha512-lI2bPk4TvwavHdehjr5WiC6HnZ59hacM6ySEo4RM/H7tsjWd8JpqiNW9ThH7rO/yKtrn4mGBoXshpvn8clXjPg==}
+  '@tailwindcss/postcss@4.1.17':
+    resolution: {integrity: sha512-+nKl9N9mN5uJ+M7dBOOCzINw94MPstNR/GtIhz1fpZysxL/4a+No64jCBD6CPN+bIHWFx3KWuu8XJRrj/572Dw==}
 
   '@tybys/wasm-util@0.10.1':
     resolution: {integrity: sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg==}
@@ -1868,9 +1875,6 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
-  tailwindcss@4.0.0:
-    resolution: {integrity: sha512-ULRPI3A+e39T7pSaf1xoi58AqqJxVCLg8F/uM5A3FadUbnyDTgltVnXJvdkTjwCOGA6NazqHVcwPJC5h2vRYVQ==}
-
   tailwindcss@4.1.17:
     resolution: {integrity: sha512-j9Ee2YjuQqYT9bbRTfTZht9W/ytp5H+jJpZKiYdP/bpnXARAuELt9ofP0lPnmHjbga7SNQIxdTAXCmtKVYjN+Q==}
 
@@ -2281,14 +2285,13 @@ snapshots:
       '@tailwindcss/oxide-win32-arm64-msvc': 4.1.17
       '@tailwindcss/oxide-win32-x64-msvc': 4.1.17
 
-  '@tailwindcss/postcss@4.0.0':
+  '@tailwindcss/postcss@4.1.17':
     dependencies:
       '@alloc/quick-lru': 5.2.0
       '@tailwindcss/node': 4.1.17
       '@tailwindcss/oxide': 4.1.17
-      lightningcss: 1.30.2
       postcss: 8.5.6
-      tailwindcss: 4.0.0
+      tailwindcss: 4.1.17
 
   '@tybys/wasm-util@0.10.1':
     dependencies:
@@ -3867,8 +3870,6 @@ snapshots:
       has-flag: 4.0.0
 
   supports-preserve-symlinks-flag@1.0.0: {}
-
-  tailwindcss@4.0.0: {}
 
   tailwindcss@4.1.17: {}
 

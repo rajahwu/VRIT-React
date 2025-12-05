@@ -1,3 +1,4 @@
+// packages/ritual-brand/src/RitualBrand.ts
 import colors from '../../../design-source/TOKENS_SOURCE/colors.json';
 import phases from '../../../design-source/TOKENS_SOURCE/phases.json';
 import spacing from '../../../design-source/TOKENS_SOURCE/spacing.json';

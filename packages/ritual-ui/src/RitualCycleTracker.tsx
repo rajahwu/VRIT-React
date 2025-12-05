@@ -1,19 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PHASES } from '@gttm/ritual-brand';
 
-function formatTime(seconds) {
+function formatTime(seconds: number) {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-function formatDuration(seconds) {
+function formatDuration(seconds: number) {
   if (seconds >= 3600) {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
   }
   return `${Math.floor(seconds / 60)}m`;
+}
+
+interface CompletedSession {
+  date: string;
+  plan: string;
+  sprint: string;
+  rest: string;
+  reflect: string;
+  recover: string;
+  completedAt: string;
 }
 
 export default function RitualCycleTracker() {
@@ -28,14 +38,14 @@ export default function RitualCycleTracker() {
     reflect: '',
     recover: ''
   });
-  const [completedSessions, setCompletedSessions] = useState([]);
+  const [completedSessions, setCompletedSessions] = useState<CompletedSession[]>([]);
   const [showHistory, setShowHistory] = useState(false);
-  const textareaRef = useRef(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const currentPhase = PHASES[currentPhaseIndex];
 
   useEffect(() => {
-    let interval;
+    let interval: NodeJS.Timeout | undefined;
     if (isRunning && timeRemaining > 0) {
       interval = setInterval(() => {
         setTimeRemaining(t => t - 1);
@@ -53,10 +63,10 @@ export default function RitualCycleTracker() {
     }
   }, [currentPhaseIndex]);
 
-  const handleInputChange = (value) => {
+  const handleInputChange = (value: string) => {
     setSessionData(prev => ({
       ...prev,
-      [currentPhase.id]: value
+      [currentPhase.id as keyof typeof sessionData]: value
     }));
   };
 
@@ -237,7 +247,7 @@ export default function RitualCycleTracker() {
                 </label>
                 <textarea
                   ref={textareaRef}
-                  value={sessionData[currentPhase.id]}
+                  value={sessionData[currentPhase.id as keyof typeof sessionData]}
                   onChange={(e) => handleInputChange(e.target.value)}
                   placeholder="One line. Keep it atomic."
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-zinc-100 placeholder-zinc-700 focus:outline-none focus:border-zinc-600 resize-none transition-colors"

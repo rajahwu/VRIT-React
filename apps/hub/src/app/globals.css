@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@source "../../../../packages/ritual-ui/src/**/*.tsx";
+/* @source "../../../../packages/ritual-ui/src*.tsx"; */
 @import "./theme.css";
 
 /* 

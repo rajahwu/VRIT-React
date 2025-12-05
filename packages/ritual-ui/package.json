@@ -5,5 +5,9 @@
   "dependencies": {
     "@gttm/ritual-brand": "workspace:*",
     "react": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18",
+    "@types/react-dom": "^18"
   }
 }
