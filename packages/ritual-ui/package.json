@@ -21,12 +21,16 @@
     "dist"
   ],
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
     "@types/node": "^20.19.25",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.17",
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@gttm/ritual-brand": "workspace:*",
     "lucide-react": "^0.556.0"
   }
 }

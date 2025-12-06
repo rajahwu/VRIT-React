@@ -1,7 +1,6 @@
 import './variables.css';
 import './ritual-ui.css';
-import '@gttm/ritual-brand/variables.css'; // New: Import brand variables
-import '@gttm/ritual-brand/ritual.css';     // New: Import brand ritual CSS
+import '@gttm/ritual-brand/ritual.css';
 
 // Re-exports for ritual-ui package
 export { default } from './RitualCycleTracker';
