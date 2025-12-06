@@ -11,11 +11,11 @@ const SPACING = spacing as AnyJson;
 const TYPOGRAPHY = typography as AnyJson;
 
 export interface Phase {
-  id: string;         
-  name: string;       
+  id: string;
+  name: string;
   description?: string;
-  duration?: number;  
-  color?: string;     
+  duration?: number;
+  color?: string;
 }
 
 
@@ -26,6 +26,80 @@ export class RitualBrand {
   static getTokens() {
     return { colors, phases, spacing, typography };
   }
+
+
+  /**   
+   * Compiles the Design Source into CSS Variables.
+   */
+  static toCSSVariables() {
+    const vars: string[] = [":root {"];
+
+    // --- PALETTE ---
+    Object.entries(colors.palette as AnyJson).forEach(([hue, shades]) => {
+      Object.entries(shades).forEach(([shade, value]) => {
+        vars.push(`  --color-${hue}-${shade}: ${value};`);
+      });
+    });
+
+    // --- BASE SEMANTICS ---
+    Object.entries(colors.base as AnyJson).forEach(([key, value]) => {
+      if (typeof value === "string" && value.includes("-")) {
+        const [hue, shade] = value.split("-");
+        vars.push(`  --color-base-${key}: var(--color-${hue}-${shade});`);
+      } else {
+        vars.push(`  --color-base-${key}: ${value};`);
+      }
+    });
+
+    // --- PHASE SEMANTICS ---
+    Object.entries(colors.phases as AnyJson).forEach(([key, config]) => {
+      const colorRef = config.color;
+      if (colorRef && typeof colorRef === "string" && colorRef.includes("-")) {
+        const [hue, shade] = colorRef.split("-");
+        vars.push(`  --color-phase-${key}: var(--color-${hue}-${shade});`);
+      }
+    });
+
+    // --- SPACING & RADIUS ---
+    Object.entries(spacing.spacing as AnyJson).forEach(([key, value]) => {
+      vars.push(`  --spacing-${key}: ${value};`);
+    });
+
+    Object.entries(spacing.radius as AnyJson).forEach(([key, value]) => {
+      vars.push(`  --radius-${key}: ${value};`);
+    });
+
+    // --- CONTAINER & GRID ---
+    if (spacing.container?.maxWidth) {
+      Object.entries(spacing.container.maxWidth).forEach(([key, value]) => {
+        vars.push(`  --breakpoint-${key}: ${value};`);
+      });
+    }
+
+    if (spacing.container?.padding) {
+      Object.entries(spacing.container.padding).forEach(([key, value]) => {
+        vars.push(`  --spacing-container-padding-${key}: ${value};`);
+      });
+    }
+
+    if (spacing.grid) {
+      if (spacing.grid.columns) vars.push(`  --grid-columns: ${spacing.grid.columns};`);
+      if (spacing.grid.gutter) vars.push(`  --grid-gutter: ${spacing.grid.gutter};`);
+    }
+
+    // --- TYPOGRAPHY ---
+    Object.entries(typography.fonts as AnyJson).forEach(([key, config]) => {
+      vars.push(`  --font-${key}: ${config.family};`);
+    });
+
+    Object.entries(typography.special as AnyJson).forEach(([key, config]) => {
+      vars.push(`  --font-special-${key}: ${config.font};`);
+    });
+
+    vars.push("}");
+    return vars.join("\n");
+  }
+
 
   /**
    * Compiles the Design Source into a Tailwind 4 CSS Theme.
@@ -59,14 +133,14 @@ export class RitualBrand {
     // Maps colors.phases.plan.color ("amber-500") -> --color-phase-plan: var(--color-amber-500);
     lines.push('\n  /* --- PHASE SEMANTICS --- */');
     Object.entries(colors.phases as AnyJson).forEach(([key, config]) => {
-       // FIX: config is an object { color: "amber-500", ... }, not a string.
-       // We assume the 'color' property holds the reference string.
-       const colorRef = config.color; 
-       
-       if (colorRef && typeof colorRef === 'string' && colorRef.includes('-')) {
-         const [hue, shade] = colorRef.split('-');
-         lines.push(`  --color-phase-${key}: var(--color-${hue}-${shade});`);
-       }
+      // FIX: config is an object { color: "amber-500", ... }, not a string.
+      // We assume the 'color' property holds the reference string.
+      const colorRef = config.color;
+
+      if (colorRef && typeof colorRef === 'string' && colorRef.includes('-')) {
+        const [hue, shade] = colorRef.split('-');
+        lines.push(`  --color-phase-${key}: var(--color-${hue}-${shade});`);
+      }
     });
 
     // --- 4. SPACING & RADIUS ---
@@ -94,9 +168,9 @@ export class RitualBrand {
       }
     }
     if (spacing.grid) {
-        const grid = spacing.grid as AnyJson;
-        if (grid.columns) lines.push(`  --grid-columns: ${grid.columns};`);
-        if (grid.gutter) lines.push(`  --grid-gutter: ${grid.gutter};`);
+      const grid = spacing.grid as AnyJson;
+      if (grid.columns) lines.push(`  --grid-columns: ${grid.columns};`);
+      if (grid.gutter) lines.push(`  --grid-gutter: ${grid.gutter};`);
     }
 
     // --- 6. TYPOGRAPHY ---
@@ -104,7 +178,7 @@ export class RitualBrand {
     Object.entries(typography.fonts as AnyJson).forEach(([key, config]) => {
       lines.push(`  --font-${key}: ${config.family};`);
     });
-    
+
     // Special Fonts (Timer, Prompt)
     Object.entries(typography.special as AnyJson).forEach(([key, config]) => {
       lines.push(`  --font-special-${key}: ${config.font};`);

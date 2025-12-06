@@ -1,6 +1,6 @@
 @import "tailwindcss";
-@import "@gttm/ritual-brand/ritual.css";
-@import "@gttm/ritual-ui/styles.css";
+
+
 
 :root {
   /* Semantic mappings if not in @theme yet, or overrides */

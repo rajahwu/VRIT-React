@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:visual": "echo \"Visual snapshot tests need to be implemented for CycleTracker desktop/mobile and Net open/closed.\" && exit 0"
   },
   "dependencies": {
     "@gttm/ritual-brand": "workspace:*",

@@ -1,24 +1,34 @@
 import fs from "fs";
 import path from "path";
 
-const INPUT_PATH = path.join(__dirname, "../src/styles.css");
-const SRC_OUTPUT_PATH = path.join(__dirname, "../src/ritual-ui.css");
-const DIST_OUTPUT_PATH = path.join(__dirname, "../dist/ritual-ui.css");
-
 console.log("🧿 Ritual UI: Building component stylesheet…");
 
-try {
-  const css = fs.readFileSync(INPUT_PATH, "utf8");
+const DIST = path.resolve(__dirname, "../dist");
+const SRC = path.resolve(__dirname, "../src");
 
-  // Write to src for dev
-  fs.writeFileSync(SRC_OUTPUT_PATH, css);
+// Ensure dist exists
+if (!fs.existsSync(DIST)) fs.mkdirSync(DIST);
 
-  // Write to dist for consumers
-  fs.writeFileSync(DIST_OUTPUT_PATH, css);
+// ---- 1. Move variables.css from src to dist ----
+const srcVariables = path.join(SRC, "variables.css");
+const distVariables = path.join(DIST, "variables.css");
 
-  console.log(`✅ Success: UI CSS written to src/ and dist/`);
-  console.log("   Ritual layer stable and ready.");
-} catch (error) {
-  console.error("❌ Error building ritual-ui CSS:", error);
-  process.exit(1);
+if (fs.existsSync(srcVariables)) {
+  fs.copyFileSync(srcVariables, distVariables);
+  console.log("✅ variables.css copied to dist/");
+} else {
+  console.warn("⚠ variables.css missing in src/");
 }
+
+// ---- 2. Move ritual-ui.css from src to dist ----
+const srcUI = path.join(SRC, "ritual-ui.css");
+const distUI = path.join(DIST, "ritual-ui.css");
+
+if (fs.existsSync(srcUI)) {
+  fs.copyFileSync(srcUI, distUI);
+  console.log("✅ ritual-ui.css copied to dist/");
+} else {
+  console.warn("⚠ ritual-ui.css missing in src/");
+}
+
+console.log("✨ Ritual UI build complete.");

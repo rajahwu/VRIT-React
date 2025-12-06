@@ -1,8 +1,125 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, SkipForward, SkipBack } from 'lucide-react';
-import { PHASES, Phase } from './phases';
-import { useRitualSound } from './hooks/useRitualSound';
-import { useNet, TheNet } from './components/TheNet';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Volume2, VolumeX, X, Clock, ChevronLeft, ChevronRight, Activity } from 'lucide-react';
+
+// --- INTEGRATED DEPENDENCIES (THEME & PHASES) ---
+
+const THEME = {
+  base: {
+    background: 'zinc-950',
+    text: 'zinc-100',
+    muted: 'zinc-500',
+    border: 'zinc-800'
+  }
+};
+
+const PHASES = [
+  {
+    id: 'plan',
+    name: 'Plan',
+    duration: 300, // 5 minutes
+    color: 'bg-blue-600',
+    textColor: 'text-blue-400',
+    borderColor: 'border-blue-500',
+    gesture: 'Palms open, facing up. Visualize the path ahead.',
+    prompt: 'What is the single most important outcome?'
+  },
+  {
+    id: 'sprint',
+    name: 'Sprint',
+    duration: 1500, // 25 minutes
+    color: 'bg-amber-600',
+    textColor: 'text-amber-400',
+    borderColor: 'border-amber-500',
+    gesture: 'Fists closed, focus forward. Engage the work.',
+    prompt: 'Current blocking issue or primary focus:'
+  },
+  {
+    id: 'rest',
+    name: 'Rest',
+    duration: 300, // 5 minutes
+    color: 'bg-emerald-600',
+    textColor: 'text-emerald-400',
+    borderColor: 'border-emerald-500',
+    gesture: 'Hands released, shake out tension. Breathe deeply.',
+    prompt: 'How does the body feel right now?'
+  },
+  {
+    id: 'reflect',
+    name: 'Reflect',
+    duration: 600, // 10 minutes
+    color: 'bg-purple-600',
+    textColor: 'text-purple-400',
+    borderColor: 'border-purple-500',
+    gesture: 'Hand over heart. Internalize the learning.',
+    prompt: 'What went well? What was difficult?'
+  },
+  {
+    id: 'recover',
+    name: 'Recover',
+    duration: 300, // 5 minutes
+    color: 'bg-rose-600',
+    textColor: 'text-rose-400',
+    borderColor: 'border-rose-500',
+    gesture: 'Palms together. Gratitude for the effort.',
+    prompt: 'What do you need to let go of?'
+  }
+];
+
+// --- SOUND ENGINE ---
+
+const useRitualSound = (phaseId: string, isRunning: boolean) => {
+  const [isMuted, setIsMuted] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const initAudio = () => {
+    if (!audioContextRef.current) {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      audioContextRef.current = new AudioContext();
+    }
+    if (audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume();
+    }
+  };
+
+  const playTone = useCallback((freq: number, type: 'sine' | 'triangle' = 'sine') => {
+    if (isMuted || !audioContextRef.current) return;
+    
+    const ctx = audioContextRef.current;
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    
+    gainNode.gain.setValueAtTime(0.05, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2);
+    
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 2);
+  }, [isMuted]);
+
+  useEffect(() => {
+    if (isRunning && !isMuted) {
+      initAudio();
+      playTone(440); 
+      setTimeout(() => playTone(554.37), 200); 
+    }
+  }, [phaseId, isRunning, isMuted, playTone]);
+
+  return { isMuted, setIsMuted };
+};
+
+// --- MAIN COMPONENT ---
+
+interface CaptureItem {
+  id: string;
+  text: string;
+  timestamp: string;
+  phaseContext: string;
+}
 
 function formatTime(seconds: number) {
   const mins = Math.floor(seconds / 60);
@@ -19,77 +136,50 @@ function formatDuration(seconds: number) {
   return `${Math.floor(seconds / 60)}m`;
 }
 
-interface CompletedSession {
-  date: string;
-  plan: string;
-  sprint: string;
-  rest: string;
-  reflect: string;
-  recover: string;
-  completedAt: string;
-}
-
 export default function RitualCycleTracker() {
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(PHASES[0].duration);
-  const [sessionData, setSessionData] = useState({
-    date: new Date().toLocaleDateString(),
-    plan: '',
-    sprint: '',
-    rest: '',
-    reflect: '',
-    recover: ''
-  });
-  const [completedSessions, setCompletedSessions] = useState<CompletedSession[]>([]);
+  const [sessionData, setSessionData] = useState<Record<string, string>>({});
+  const [completedSessions, setCompletedSessions] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [showNet, setShowNet] = useState(true);
+  
+  // THE NET STATE
+  const [captures, setCaptures] = useState<CaptureItem[]>([]);
+  const [captureInput, setCaptureInput] = useState('');
+  const [showCaptures, setShowCaptures] = useState(true);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
   const currentPhase = PHASES[currentPhaseIndex];
+  const { isMuted, setIsMuted } = useRitualSound(currentPhase.id, isRunning);
 
-  // --- AUDIO ENGINE ---
-  const {
-    isMuted,
-    setIsMuted,
-    isPlaying,
-    currentTrack,
-    availableTracks,
-    nextTrack,
-    prevTrack,
-  } = useRitualSound({
-    phaseId: currentPhase.id as any,
-    isRunning,
-  });
-
-  // --- THE NET ---
-  const { captures, addCapture, clearCaptures } = useNet();
-
-  // Timer logic
+  // Timer
   useEffect(() => {
-    let interval: NodeJS.Timeout | undefined;
+    let interval: NodeJS.Timeout;
     if (isRunning && timeRemaining > 0) {
-      interval = setInterval(() => {
-        setTimeRemaining((t: number) => t - 1);
-      }, 1000);
+      interval = setInterval(() => setTimeRemaining(t => t - 1), 1000);
     } else if (timeRemaining === 0 && isRunning) {
       setIsRunning(false);
     }
     return () => clearInterval(interval);
   }, [isRunning, timeRemaining]);
 
-  // Focus textarea on phase change
+  // Focus
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-    }
+    if (textareaRef.current) textareaRef.current.focus();
   }, [currentPhaseIndex]);
 
-  const handleInputChange = (value: string) => {
-    setSessionData(prev => ({
-      ...prev,
-      [currentPhase.id as keyof typeof sessionData]: value
-    }));
+  const handleCaptureSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!captureInput.trim()) return;
+    const newCapture: CaptureItem = {
+      id: crypto.randomUUID(),
+      text: captureInput,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      phaseContext: currentPhase.name
+    };
+    setCaptures(prev => [newCapture, ...prev]);
+    setCaptureInput('');
   };
 
   const nextPhase = () => {
@@ -100,14 +190,7 @@ export default function RitualCycleTracker() {
       setIsRunning(false);
     } else {
       setCompletedSessions(prev => [...prev, { ...sessionData, completedAt: new Date().toISOString() }]);
-      setSessionData({
-        date: new Date().toLocaleDateString(),
-        plan: '',
-        sprint: '',
-        rest: '',
-        reflect: '',
-        recover: ''
-      });
+      setSessionData({});
       setCurrentPhaseIndex(0);
       setTimeRemaining(PHASES[0].duration);
       setIsRunning(false);
@@ -123,259 +206,262 @@ export default function RitualCycleTracker() {
     }
   };
 
-  const toggleTimer = () => setIsRunning(!isRunning);
-  const resetTimer = () => { setTimeRemaining(currentPhase.duration); setIsRunning(false); };
-  const skipTimer = () => { setTimeRemaining(0); setIsRunning(false); };
-
   const progress = ((currentPhase.duration - timeRemaining) / currentPhase.duration) * 100;
 
-  return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-8 flex flex-col md:flex-row gap-8">
-      
-      {/* LEFT COLUMN: THE ENGINE */}
-      <div className="flex-1 max-w-2xl mx-auto w-full">
-
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-light tracking-tight">Ritual Cycle</h1>
-            <p className="text-zinc-500 text-sm mt-1">In, through, out, done.</p>
-          </div>
-          
-          <div className="flex gap-2">
-            {/* Audio Toggle */}
-            <button
-              onClick={() => setIsMuted(!isMuted)}
-              className={`text-xs px-3 py-1 border rounded-lg transition-colors flex items-center gap-2 ${
-                isMuted
-                  ? 'border-zinc-800 text-zinc-500'
-                  : 'border-emerald-500/30 text-emerald-500 bg-emerald-500/5'
-              }`}
-            >
-              {isMuted ? (
-                <><VolumeX className="w-3 h-3" /> Silent</>
-              ) : (
-                <><Volume2 className="w-3 h-3" /> Sound</>
-              )}
-            </button>
-
-            {/* Mobile Net Toggle */}
-            <button
-              onClick={() => setShowNet(!showNet)}
-              className="md:hidden text-zinc-500 hover:text-zinc-300 text-sm px-3 py-1 border border-zinc-800 rounded-lg transition-colors"
-            >
-              {showNet ? 'Hide Net' : `Net (${captures.length})`}
-            </button>
-
-            {/* History Toggle */}
-            <button
-              onClick={() => setShowHistory(!showHistory)}
-              className="text-zinc-500 hover:text-zinc-300 text-sm px-3 py-1 border border-zinc-800 rounded-lg transition-colors"
-            >
-              {showHistory ? 'Current' : `History (${completedSessions.length})`}
-            </button>
-          </div>
-        </div>
-
-        {showHistory ? (
-          /* History View */
-          <div className="space-y-4">
-            {completedSessions.length === 0 ? (
-              <div className="text-center py-16 text-zinc-600">
-                <p>No completed sessions yet.</p>
-                <p className="text-sm mt-2">Complete a cycle to see it here.</p>
-              </div>
-            ) : (
-              completedSessions.map((session, idx) => (
-                <div key={idx} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-2">
-                  <div className="text-zinc-500 text-xs">{session.date}</div>
-                  <div className="space-y-1 text-sm">
-                    <div><span className="text-amber-500 font-medium">PLAN:</span> {session.plan || '—'}</div>
-                    <div><span className="text-emerald-500 font-medium">SPRINT:</span> {session.sprint || '—'}</div>
-                    <div><span className="text-sky-500 font-medium">REST:</span> {session.rest || '—'}</div>
-                    <div><span className="text-violet-500 font-medium">REFLECT:</span> {session.reflect || '—'}</div>
-                    {session.recover && <div><span className="text-rose-500 font-medium">RECOVER:</span> {session.recover}</div>}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        ) : (
-          /* Active Session View */
-          <>
-            {/* Phase Indicator */}
-            <div className="flex gap-1 mb-8">
-              {PHASES.map((phase: Phase, idx: number) => (
-                <div
-                  key={phase.id}
-                  className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                    idx < currentPhaseIndex
-                      ? phase.color
-                      : idx === currentPhaseIndex
-                        ? `${phase.color} opacity-100`
-                        : 'bg-zinc-800'
-                  }`}
-                />
-              ))}
+ return (
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col md:flex-row">
+      <div className="max-w-container mx-auto w-full min-w-[360px] px-4 md:px-8 flex flex-col md:flex-row gap-8">
+  
+        {/* LEFT COLUMN (ENGINE)
+          CRITICAL FIX: 'min-w-0' prevents the flex item from overflowing/crushing when the sidebar is open.
+          We separate the flex behavior (here) from the width constraint (inner div).
+        */}
+        <div className="flex-1 min-w-0 flex flex-col overflow-y-auto custom-scrollbar p-4 md:p-8">
+  
+          {/* INNER CONTENT WRAPPER
+            This applies your 'max-w-2xl' constraint to center the content nicely,
+            independent of the flex container's shrinking.
+          */}
+          <div className="max-w-2xl mx-auto w-full flex-col flex min-h-0">
+          {/* Header */}
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+            <div>
+              <h1 className="text-2xl font-light tracking-tight flex items-center gap-2">
+                <Activity className="w-5 h-5 text-zinc-500" />
+                Ritual Cycle
+              </h1>
+              <p className={`text-${THEME.base.muted} text-sm mt-1`}>In, through, out, done.</p>
             </div>
+            
+            <div className="flex items-center gap-2">
+              <button 
+                  onClick={() => setIsMuted(!isMuted)}
+                  className={`text-xs px-3 py-1.5 border rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap ${
+                      isMuted 
+                      ? `border-${THEME.base.border} text-${THEME.base.muted}` 
+                      : `border-emerald-500/30 text-emerald-500 bg-emerald-500/5`
+                  }`}
+              >
+                  {isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+                  <span className="hidden sm:inline">{isMuted ? 'Silent' : 'Sound'}</span>
+              </button>
 
-            {/* Current Phase Card */}
-            <div className={`bg-zinc-900 border ${currentPhase.borderColor} border-opacity-30 rounded-2xl p-6 mb-6`}>
+              <button
+                onClick={() => setShowCaptures(!showCaptures)}
+                className={`md:hidden text-${THEME.base.muted} hover:text-zinc-300 text-sm px-3 py-1.5 border border-${THEME.base.border} rounded-lg`}
+              >
+                {showCaptures ? 'Hide Net' : `Net (${captures.length})`}
+              </button>
+              
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className={`text-${THEME.base.muted} hover:text-zinc-300 text-sm px-3 py-1.5 border border-${THEME.base.border} rounded-lg whitespace-nowrap`}
+              >
+                {showHistory ? 'Back' : `History (${completedSessions.length})`}
+              </button>
+            </div>
+          </div>
 
-              {/* Phase Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <div className={`text-xs font-medium ${currentPhase.textColor} uppercase tracking-wider mb-1`}>
-                    Phase {currentPhaseIndex + 1} of {PHASES.length}
+          {showHistory ? (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              {completedSessions.length === 0 ? (
+                <div className={`text-center py-16 text-${THEME.base.muted}`}>
+                  <p>No completed sessions yet.</p>
+                </div>
+              ) : (
+                completedSessions.map((session, idx) => (
+                  <div key={idx} className={`bg-zinc-900 border border-${THEME.base.border} rounded-xl p-4 space-y-2`}>
+                    <div className={`text-${THEME.base.muted} text-xs`}>{session.date || 'Today'}</div>
+                    <div className="space-y-1 text-sm">
+                      {PHASES.map(p => (
+                        <div key={p.id} className="flex justify-between">
+                          <span className={`${p.textColor} text-xs uppercase`}>{p.name}</span>
+                          <span className="text-zinc-300 truncate max-w-[200px]">{session[p.id] || '—'}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <h2 className="text-3xl font-light">{currentPhase.name}</h2>
-                </div>
-                <div className={`text-xs ${currentPhase.textColor} bg-zinc-800 px-2 py-1 rounded`}>
-                  {formatDuration(currentPhase.duration)}
-                </div>
+                ))
+              )}
+            </div>
+          ) : (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex-1 flex flex-col min-h-0">
+              
+              {/* Phase Tabs */}
+              <div className="flex gap-1 mb-8 overflow-x-auto pb-2 no-scrollbar">
+                {PHASES.map((phase, idx) => (
+                  <div
+                    key={phase.id}
+                    className={`h-1 flex-1 min-w-[2rem] rounded-full transition-all duration-300 ${
+                      idx < currentPhaseIndex ? phase.color : 
+                      idx === currentPhaseIndex ? `${phase.color} opacity-100` : 'bg-zinc-800'
+                    }`}
+                  />
+                ))}
               </div>
 
-              {/* Gesture */}
-              <p className="text-zinc-400 mb-6 text-sm leading-relaxed">
-                {currentPhase.gesture}
-              </p>
-
-              {/* Now Playing (Audio) */}
-              {currentTrack && !isMuted && (
-                <div className="mb-4 flex items-center justify-between bg-zinc-950/50 rounded-lg px-3 py-2">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${isPlaying ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-600'}`} />
-                    <div>
-                      <div className="text-xs text-zinc-400">Now Playing</div>
-                      <div className="text-sm text-zinc-200">{currentTrack.title}</div>
+              {/* Current Phase Card */}
+              <div className={`flex-shrink-0 bg-zinc-900 border ${currentPhase.borderColor} border-opacity-30 rounded-2xl p-6 md:p-8 mb-6 transition-colors duration-500 shadow-2xl shadow-zinc-950/50 flex flex-col relative overflow-hidden`}>
+                
+                {/* Card Header */}
+                <div className="flex items-start justify-between mb-4 relative z-10">
+                  <div>
+                    <div className={`text-xs font-medium ${currentPhase.textColor} uppercase tracking-wider mb-1`}>
+                      Phase {currentPhaseIndex + 1} of {PHASES.length}
                     </div>
+                    <h2 className="text-3xl md:text-3xl font-light text-white">{currentPhase.name}</h2>
                   </div>
-                  {availableTracks.length > 1 && (
-                    <div className="flex gap-1">
-                      <button
-                        onClick={prevTrack}
-                        className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
-                      >
-                        <SkipBack className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={nextTrack}
-                        className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
-                      >
-                        <SkipForward className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Timer */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-4xl font-mono font-light tabular-nums">
-                    {formatTime(timeRemaining)}
-                  </span>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={toggleTimer}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isRunning
-                          ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                          : `${currentPhase.color} text-white hover:opacity-90`
-                      }`}
-                    >
-                      {isRunning ? 'Pause' : 'Start'}
-                    </button>
-                    <button
-                      onClick={resetTimer}
-                      className="px-3 py-2 rounded-lg text-sm text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
-                    >
-                      Reset
-                    </button>
-                    <button
-                      onClick={skipTimer}
-                      className="px-3 py-2 rounded-lg text-sm text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
-                    >
-                      Skip
-                    </button>
+                  <div className={`text-xs ${currentPhase.textColor} bg-zinc-950/50 px-3 py-1.5 rounded font-mono border border-white/5`}>
+                    {formatDuration(currentPhase.duration)}
                   </div>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${currentPhase.color} transition-all duration-1000 ease-linear`}
-                    style={{ width: `${progress}%` }}
+                {/* Gesture */}
+                <p className="text-zinc-400 mb-6 text-sm leading-relaxed relative z-10">
+                  {currentPhase.gesture}
+                </p>
+
+                {/* Timer & Controls */}
+                <div className="mb-6 relative z-10">
+                  <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
+                    <div className={`text-5xl md:text-6xl font-mono font-light tabular-nums tracking-tighter leading-none ${isRunning ? 'text-zinc-100' : 'text-zinc-500'}`}>
+                      {formatTime(timeRemaining)}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setIsRunning(!isRunning)}
+                        className={`h-10 px-6 rounded-lg text-sm font-medium transition-all active:scale-95 ${
+                          isRunning
+                            ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                            : `${currentPhase.color} text-white hover:opacity-90 shadow-lg shadow-${currentPhase.color}/20`
+                        }`}
+                      >
+                        {isRunning ? 'Pause' : 'Start'}
+                      </button>
+                      <button
+                        onClick={() => { setTimeRemaining(currentPhase.duration); setIsRunning(false); }}
+                        className="h-10 px-3 flex items-center justify-center rounded-lg text-sm text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+                      >
+                        Reset
+                      </button>
+                      <button
+                        onClick={() => { setTimeRemaining(0); setIsRunning(false); }}
+                        className="h-10 px-3 flex items-center justify-center rounded-lg text-sm text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${currentPhase.color} transition-all duration-1000 ease-linear`}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Input Area */}
+                <div className="flex-1 flex flex-col relative z-10">
+                  <label className={`block ${THEME.base.muted} text-sm mb-2`}>
+                    {currentPhase.prompt}
+                  </label>
+                  <textarea
+                    ref={textareaRef}
+                    value={sessionData[currentPhase.id] || ''}
+                    onChange={(e) => setSessionData(prev => ({ ...prev, [currentPhase.id]: e.target.value }))}
+                    placeholder="Input stream..."
+                    rows={3}
+                    className={`w-full bg-zinc-950/50 border ${THEME.base.border} rounded-xl p-4 text-${THEME.base.text} placeholder-zinc-700 focus:outline-none focus:border-zinc-600 resize-none transition-colors font-sans`}
                   />
                 </div>
+
               </div>
 
-              {/* Input */}
-              <div>
-                <label className="block text-zinc-500 text-sm mb-2">
-                  {currentPhase.prompt}
-                </label>
-                <textarea
-                  ref={textareaRef}
-                  value={sessionData[currentPhase.id as keyof typeof sessionData]}
-                  onChange={(e) => handleInputChange(e.target.value)}
-                  placeholder="One line. Keep it atomic."
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-zinc-100 placeholder-zinc-700 focus:outline-none focus:border-zinc-600 resize-none transition-colors"
-                  rows={3}
-                />
+              {/* Navigation Footer */}
+              <div className="flex justify-between items-center pb-8">
+                <button
+                  onClick={prevPhase}
+                  disabled={currentPhaseIndex === 0}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm text-${THEME.base.muted} hover:text-zinc-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors`}
+                >
+                  <ChevronLeft className="w-4 h-4" /> Previous
+                </button>
+
+                <button
+                  onClick={nextPhase}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium ${currentPhase.color} text-white hover:opacity-90 transition-opacity shadow-lg shadow-${currentPhase.color}/20`}
+                >
+                  {currentPhaseIndex === PHASES.length - 1 ? 'Complete' : 'Next Phase'} <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
-            </div>
 
-            {/* Navigation */}
-            <div className="flex justify-between items-center">
-              <button
-                onClick={prevPhase}
-                disabled={currentPhaseIndex === 0}
-                className="px-4 py-2 text-sm text-zinc-500 hover:text-zinc-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                ← Previous
-              </button>
-
-              <button
-                onClick={nextPhase}
-                className={`px-6 py-3 rounded-xl text-sm font-medium ${currentPhase.color} text-white hover:opacity-90 transition-opacity`}
-              >
-                {currentPhaseIndex === PHASES.length - 1 ? 'Complete Cycle' : 'Next Phase →'}
-              </button>
             </div>
-
-            {/* Session Preview */}
-            <div className="mt-8 pt-8 border-t border-zinc-800">
-              <h3 className="text-zinc-500 text-xs uppercase tracking-wider mb-4">Session Record</h3>
-              <div className="bg-zinc-900 rounded-xl p-4 font-mono text-sm space-y-1">
-                <div className="text-zinc-600">SESSION: {sessionData.date}</div>
-                <div><span className="text-amber-500">PLAN:</span> <span className="text-zinc-400">{sessionData.plan || '—'}</span></div>
-                <div><span className="text-emerald-500">SPRINT:</span> <span className="text-zinc-400">{sessionData.sprint || '—'}</span></div>
-                <div><span className="text-sky-500">REST:</span> <span className="text-zinc-400">{sessionData.rest || '—'}</span></div>
-                <div><span className="text-violet-500">REFLECT:</span> <span className="text-zinc-400">{sessionData.reflect || '—'}</span></div>
-                <div><span className="text-rose-500">RECOVER:</span> <span className="text-zinc-400">{sessionData.recover || '(optional)'}</span></div>
-              </div>
-            </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
 
       {/* RIGHT COLUMN: THE NET */}
       <div className={`
-        fixed inset-y-0 right-0 z-50 w-80 bg-zinc-950 p-6 shadow-2xl border-l border-zinc-900
-        md:static md:shadow-none md:z-auto md:border-none
+        fixed inset-y-0 right-0 z-50 bg-zinc-950 shadow-2xl md:shadow-none md:static md:z-auto
+        w-80 border-l border-zinc-900 flex flex-col
         transition-transform duration-300 ease-in-out
-        ${showNet ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
+        ${showCaptures ? 'translate-x-0' : 'translate-x-full md:translate-x-0 md:w-0 md:border-none md:overflow-hidden'}
       `}>
-        <TheNet
-          captures={captures}
-          onCapture={addCapture}
-          onClear={clearCaptures}
-          currentPhase={currentPhase.name}
-          isVisible={true}
-          onClose={() => setShowNet(false)}
-        />
+        <div className="flex-1 flex flex-col min-h-0 w-80">
+            <div className="p-6 pb-0 flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-lg font-light tracking-tight text-zinc-400">The Net</h2>
+                  <p className="text-zinc-600 text-xs mt-0.5">Capture stream.</p>
+                </div>
+                <button onClick={() => setShowCaptures(false)} className="md:hidden text-zinc-500 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+            </div>
+
+            <div className="px-6 mb-6">
+                <form onSubmit={handleCaptureSubmit}>
+                <input
+                    type="text"
+                    value={captureInput}
+                    onChange={(e) => setCaptureInput(e.target.value)}
+                    placeholder="Add to net..."
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-700 transition-colors"
+                />
+                </form>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-3 custom-scrollbar">
+                {captures.length === 0 ? (
+                <div className="text-center py-8 text-zinc-700 text-sm italic border-t border-zinc-900/50 pt-12">
+                    Net is empty.
+                </div>
+                ) : (
+                captures.map((cap) => (
+                    <div key={cap.id} className="group bg-zinc-900/50 border border-zinc-800/50 hover:border-zinc-700 rounded-lg p-3 transition-all">
+                      <div className="text-zinc-300 text-sm mb-2 break-words leading-relaxed">{cap.text}</div>
+                      <div className="flex items-center justify-between text-[10px] text-zinc-600 font-mono">
+                          <span>{cap.timestamp}</span>
+                          <span className="uppercase tracking-wider opacity-60 group-hover:opacity-100 transition-opacity text-[9px] border border-zinc-800 px-1 rounded">{cap.phaseContext}</span>
+                      </div>
+                    </div>
+                ))
+                )}
+            </div>
+            
+            {captures.length > 0 && (
+                <div className="p-4 border-t border-zinc-900 text-center">
+                    <button onClick={() => setCaptures([])} className="text-xs text-zinc-600 hover:text-rose-500 transition-colors">
+                        Clear Net
+                    </button>
+                </div>
+            )}
+        </div>
       </div>
+
+    </div>
     </div>
   );
 }

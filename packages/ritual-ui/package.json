@@ -14,7 +14,8 @@
       "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
-    "./styles.css": "./dist/styles.css"
+    "./variables.css": "./dist/variables.css",
+    "./ritual-ui.css": "./dist/ritual-ui.css"
   },
   "files": [
     "dist"

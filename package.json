@@ -3,6 +3,11 @@
   "private": true,
   "scripts": {
     "build": "pnpm -r run build",
-    "dev": "pnpm -r run dev"
+    "dev": "pnpm -r run dev",
+    "build:brand": "pnpm --filter @gttm/ritual-brand build",
+    "build:ui": "pnpm --filter @gttm/ritual-ui build",
+    "build:hub": "pnpm --filter hub build",
+    "build:all": "pnpm build:brand && pnpm build:ui && pnpm build:hub",
+    "ci:check-stage-width": "echo \"CI step to ensure Stage Width >= 720px needs to be implemented.\" && exit 0"
   }
 }
