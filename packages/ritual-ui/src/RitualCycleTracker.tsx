@@ -201,14 +201,14 @@ export default function RitualCycleTracker() {
 
               {/* Timer */}
               <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-4xl font-mono font-light tabular-nums">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+                  <span className="text-4xl md:text-5xl font-mono font-light tabular-nums">
                     {formatTime(timeRemaining)}
                   </span>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <button
                       onClick={toggleTimer}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-medium transition-colors ${
                         isRunning 
                           ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700' 
                           : `${currentPhase.color} text-white hover:opacity-90`
@@ -218,13 +218,13 @@ export default function RitualCycleTracker() {
                     </button>
                     <button
                       onClick={resetTimer}
-                      className="px-3 py-2 rounded-lg text-sm text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+                      className="px-4 py-3 rounded-xl text-sm text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
                     >
                       Reset
                     </button>
                     <button
                       onClick={skipTimer}
-                      className="px-3 py-2 rounded-lg text-sm text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+                      className="px-4 py-3 rounded-xl text-sm text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
                     >
                       Skip
                     </button>
