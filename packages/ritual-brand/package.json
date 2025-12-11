@@ -16,7 +16,8 @@
       "import": "./dist/index.js",
       "require": "./dist/index.js"
     },
-    "./ritual.css": "./dist/ritual.css"
+    "./ritual.css": "./dist/ritual.css",
+    "./variables.css": "./dist/variables.css"
   },
 
   "files": [
